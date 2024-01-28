@@ -62,7 +62,7 @@ def test() -> None:
 
             write_data = {
                 'app_id': app_id,
-                'recommend_api': pre_list,
+                'recommend_tpl': pre_list,
                 'removed_tpls': pos_list
             }
             recommend_res_fp.write(json.dumps(write_data) + '\n')
