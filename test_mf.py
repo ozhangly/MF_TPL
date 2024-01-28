@@ -44,15 +44,15 @@ def test_one_user(user_pre, user_pos) -> Dict:
 def test() -> None:
     test_num: int = 0
     rmv_fold = re.findall('[0-9]', args.testing_dataset)
-    recommend_res_fp = open(file=args.rec_output + 'rmv%d_fold%d/test_MF_%d_%d.json' % (rmv_fold[0], rmv_fold[1], rmv_fold[0], rmv_fold[1]), mode='w')
-    recommend_metric_fp = open(file=args.rec_output + 'rmv%d_fold%d/metric_output.csv', mode='w')
+    recommend_res_fp = open(file=args.rec_output + 'rmv%s_fold%s/test_MF_%s_%s.json' % (rmv_fold[0], rmv_fold[1], rmv_fold[0], rmv_fold[1]), mode='w')
+    recommend_metric_fp = open(file=args.rec_output + 'rmv%s_fold%s/metric_output.csv', mode='w')
 
     res = {
         'recall': np.zeros(shape=(len(ks),)), 'precision': np.zeros(shape=(len(ks),)), 'ndcg': np.zeros(shape=(len(ks),)),
         'fone': np.zeros(shape=(len(ks),)), 'mrr': np.zeros(shape=(len(ks),)), 'map': np.zeros(shape=(len(ks),))
     }
 
-    prediction = np.loadtxt(args.rec_output + 'rmv%d_fold%d/prediction_%d_%d.txt' % (rmv_fold[0], rmv_fold[1], rmv_fold[0], rmv_fold[1]))
+    prediction = np.loadtxt(args.rec_output + 'rmv%s_fold%s/prediction_%s_%s.txt' % (rmv_fold[0], rmv_fold[1], rmv_fold[0], rmv_fold[1]))
     with open(file=args.testing_path + args.testing_dataset, mode='r') as fp:
         for line in tqdm(fp.readlines(), desc='test progress...', leave=True):
             test_obj = json.loads(line.strip('\n'))
