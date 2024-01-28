@@ -1,15 +1,16 @@
 import re
 import utility.utils
 import utility.sim_computed
+import utility.load_data
+import utility.config
 
 import numpy as np
 
 from tqdm import tqdm
 from time import time
 from test_mf import test
-from utility import load_data, config
 
-args = config.args
+args = utility.config.args
 
 
 def train(epochs) -> None:
@@ -18,7 +19,7 @@ def train(epochs) -> None:
     train_file = args.training_path + args.training_dataset
     print('load data...')
     load_st = time()
-    relation = load_data.load_relation_mat(train_file_path=train_file)
+    relation = utility.load_data.load_relation_mat(train_file_path=train_file)
     print('load data completed. [%.2fs]' % (time() - load_st))
 
     # 计算app相似度和lib相似度
