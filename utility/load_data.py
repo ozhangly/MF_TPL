@@ -1,10 +1,10 @@
 import os
 import re
 import json
-import config
+import utility.config
 import numpy as np
 
-args = config.args
+args = utility.config.args
 
 
 def load_relation_mat(train_file_path: str) -> np.ndarray:
