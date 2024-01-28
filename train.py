@@ -36,10 +36,10 @@ def train(epochs) -> None:
 
     log_weight = args.weight / (np.log(np.sum(relation, axis=0) + 1) + 1)
 
-    maxVI = np.loadtxt(fname=args.similarity_path + '%d_%d/maxVI.txt')
-    maxPI = np.loadtxt(fname=args.similarity_path + '%d_%d/maxPI.txt')
-    maxPU = np.loadtxt(fname=args.similarity_path + '%d_%d/maxPU.txt')
-    maxVU = np.loadtxt(fname=args.similarity_path + '%d_%d/maxVU.txt')
+    maxVI = np.loadtxt(fname=args.similarity_path + '%s_%s/maxVI.txt' % (rmv_fold[0], rmv_fold[1]))
+    maxPI = np.loadtxt(fname=args.similarity_path + '%s_%s/maxPI.txt' % (rmv_fold[0], rmv_fold[1]))
+    maxPU = np.loadtxt(fname=args.similarity_path + '%s_%s/maxPU.txt' % (rmv_fold[0], rmv_fold[1]))
+    maxVU = np.loadtxt(fname=args.similarity_path + '%s_%s/maxVU.txt' % (rmv_fold[0], rmv_fold[1]))
 
     C = np.zeros(shape=(size_app, size_lib))
     np.random.seed(int(time()))
@@ -119,8 +119,8 @@ def train(epochs) -> None:
     del xiabiao, pre_u
 
     # 保存预测结果
-    utility.utils.ensure_dir(args.rec_output + 'rmv%d_fold%d/' % (rmv_fold[0], rmv_fold[1]))
-    np.savetxt(fname=args.rec_output + 'rmv%d_fold%d/prediction_%d_%d.txt' % (rmv_fold[0], rmv_fold[1], rmv_fold[0], rmv_fold[1]),
+    utility.utils.ensure_dir(args.rec_output + 'rmv%s_fold%s/' % (rmv_fold[0], rmv_fold[1]))
+    np.savetxt(fname=args.rec_output + 'rmv%s_fold%s/prediction_%s_%s.txt' % (rmv_fold[0], rmv_fold[1], rmv_fold[0], rmv_fold[1]),
                X=prediction,
                fmt='%d')
 
