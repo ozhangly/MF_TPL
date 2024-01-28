@@ -4,15 +4,15 @@ import json
 import config
 import numpy as np
 
-
 args = config.args
 
 
 def load_relation_mat(train_file_path: str) -> np.ndarray:
-
     rmv_fold = re.findall('[0-9]', args.training_dataset)
-    if os.path.exists(train_file_path):
-        relation = np.loadtxt()
+    relation_file_name = 'relation_%d_%d.txt' % (rmv_fold[0], rmv_fold[1])
+    if os.path.exists(args.relation_path + relation_file_name):
+        relation = np.loadtxt(args.relation + relation_file_name)
+        return relation
 
     size_apk: int = 0
     size_lib: int = 0
@@ -32,5 +32,7 @@ def load_relation_mat(train_file_path: str) -> np.ndarray:
         tpl_list = obj['tpl_list']
         for tpl in tpl_list:
             relation[app_id, tpl] = 1
+
+    np.savetxt(fname=args.relation_path + relation_file_name, X=relation)
 
     return relation
