@@ -21,7 +21,7 @@ def app_sim_computed(relation: np.ndarray) -> None:
     ref_relation = remain.T                             # [size_lib, size_app]
     sum_ref_relation = np.sum(ref_relation, axis=0)     # [size_app,]
     (size_app, size_lib) = relation.shape
-    simiU = np.zeros(shape=(size_app, size_app))        # simiU: [size_app, size_lib]
+    simiU = np.zeros(shape=(size_app, size_app))        # simiU: [size_app, size_app]
 
     for u in range(size_app):
         user_u = ref_relation[:, u]         # user_u: [size_lib,]
