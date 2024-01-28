@@ -10,9 +10,9 @@ args = config.args
 def app_sim_computed(relation: np.ndarray) -> None:
     # 有两个需要保存的文件
     rmv_fold = re.findall('[0-9]', args.training_dataset)
-    utils.ensure_dir(args.similarity_path + '%d_%d/' % (rmv_fold[0], rmv_fold[1]))
-    v_file_name = args.similarity_path + '%d_%d/maxVU.txt' % (rmv_fold[0], rmv_fold[1])
-    p_file_name = args.similarity_path + '%d_%d/maxPU.txt' % (rmv_fold[0], rmv_fold[1])
+    utils.ensure_dir(args.similarity_path + '%s_%s/' % (rmv_fold[0], rmv_fold[1]))
+    v_file_name = args.similarity_path + '%s_%s/maxVU.txt' % (rmv_fold[0], rmv_fold[1])
+    p_file_name = args.similarity_path + '%s_%s/maxPU.txt' % (rmv_fold[0], rmv_fold[1])
     if utils.file_exists(v_file_name) and utils.file_exists(p_file_name):
         return
 
@@ -46,9 +46,9 @@ def app_sim_computed(relation: np.ndarray) -> None:
 
 def lib_sim_computed(relation: np.ndarray) -> None:
     rmv_fold = re.findall('[0-9]', args.training_dataset)
-    utils.ensure_dir(args.similarity_path + '%d_%d/' % (rmv_fold[0], rmv_fold[1]))
-    v_file_name = args.similarity_path + '%d_%d/maxVI.txt' % (rmv_fold[0], rmv_fold[1])
-    p_file_name = args.similarity_path + '%d_%d/maxPI.txt' % (rmv_fold[0], rmv_fold[1])
+    utils.ensure_dir(args.similarity_path + '%s_%s/' % (rmv_fold[0], rmv_fold[1]))
+    v_file_name = args.similarity_path + '%s_%s/maxVI.txt' % (rmv_fold[0], rmv_fold[1])
+    p_file_name = args.similarity_path + '%s_%s/maxPI.txt' % (rmv_fold[0], rmv_fold[1])
     if utils.file_exists(v_file_name) and utils.file_exists(p_file_name):
         return
 
