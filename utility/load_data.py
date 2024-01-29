@@ -26,7 +26,7 @@ def load_relation_mat(train_file_path: str) -> np.ndarray:
 
     relation = np.zeros(shape=(size_apk, size_lib), dtype=np.int8)
 
-    train_fp.seek(0, 0)
+    train_fp.seek(0)
     for line in train_fp.readlines():
         obj = json.loads(line.strip('\n'))
         app_id = obj['app_id']
