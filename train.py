@@ -36,21 +36,20 @@ def train(epochs) -> None:
 
     log_weight = args.weight / (np.log(np.sum(relation, axis=0) + 1) + 1)
 
-    maxVI = np.loadtxt(fname=args.similarity_path + '%s_%s/maxVI.txt' % (rmv_fold[0], rmv_fold[1]))
-    maxPI = np.loadtxt(fname=args.similarity_path + '%s_%s/maxPI.txt' % (rmv_fold[0], rmv_fold[1]))
-    maxPU = np.loadtxt(fname=args.similarity_path + '%s_%s/maxPU.txt' % (rmv_fold[0], rmv_fold[1]))
-    maxVU = np.loadtxt(fname=args.similarity_path + '%s_%s/maxVU.txt' % (rmv_fold[0], rmv_fold[1]))
+    maxVI = np.loadtxt(fname=args.similarity_path + '%s_%s/maxVI.txt' % (rmv_fold[0], rmv_fold[1]), dtype=np.float16)
+    maxPI = np.loadtxt(fname=args.similarity_path + '%s_%s/maxPI.txt' % (rmv_fold[0], rmv_fold[1]), dtype=np.float16)
+    maxPU = np.loadtxt(fname=args.similarity_path + '%s_%s/maxPU.txt' % (rmv_fold[0], rmv_fold[1]), dtype=np.float16)
+    maxVU = np.loadtxt(fname=args.similarity_path + '%s_%s/maxVU.txt' % (rmv_fold[0], rmv_fold[1]), dtype=np.float16)
 
-    C = np.zeros(shape=(size_app, size_lib))
+    C = np.zeros(shape=(size_app, size_lib), dtype=np.float16)
     np.random.seed(int(time()))
-    X = np.random.standard_normal(size=(size_app, args.factor))
-    Y = np.random.standard_normal(size=(size_lib, args.factor))
+    X = np.random.standard_normal(size=(size_app, args.factor)).astype(np.float16)
+    Y = np.random.standard_normal(size=(size_lib, args.factor)).astype(np.float16)
 
     for i in range(size_lib):
         C[:, i] = 1 + log_weight[i]*relation[:, i]
 
-    P = relation
-    position = np.zeros(shape=(size_app, 10))
+    position = np.zeros(shape=(size_app, 10), dtype=np.int8)
 
     # 准备工作都已做好
     # 用进度条还是用什么方法？统计每个epoch的用时，然后输出当前的epoch
@@ -61,7 +60,7 @@ def train(epochs) -> None:
         update_app_bar = tqdm(desc='update app vector...', total=size_app, leave=True)
         for u in range(size_app):
             Cu = C[u, :].T                               # Cu: [size_lib, ]
-            Pu = P[u, :].T                               # Pu: [size_lib, ]
+            Pu = relation[u, :].T                        # Pu: [size_lib, ]
             hou = Cu * Pu                                # hou: [size_lib, ]
             hou = np.dot(Y.T, hou)                       # hou: [factor, ]
             Nu = X[maxPU[:, u], :].T                     # Nu: [factor, top_k]
@@ -86,9 +85,9 @@ def train(epochs) -> None:
         update_lib_bar = tqdm(desc='update lib vector...', leave=True, total=size_lib)
         for i in range(size_lib):
             Ci = C[:, i]                                 # Ci: [size_app, ]
-            Pi = P[:, i]
+            Pi = relation[:, i]
             hou = Ci * Pi
-            hou = np.dot(X.T, hou)                        # hou: [factor, ]
+            hou = np.dot(X.T, hou)                       # hou: [factor, ]
             Ni = Y[maxPI[:, i], :].T                     # Ni: [factor, top_k]
             WiNormal = maxVI[:, i]                       # WiNormal: [top_k, ]
             Wi = WiNormal / np.sum(WiNormal)             # Wi: [top_k, ]
@@ -105,10 +104,13 @@ def train(epochs) -> None:
             update_lib_bar.update()
         update_lib_bar.close()
         print('>>>>>>>>>>>epoch%d  [%.3fs]<<<<<<<<<<<' % (epoch, (time() - epoch_st)))
+
+    del XtX, YtY, Cu, Ci, Pi, Pu, \
+        C, maxVU, maxVI, maxPU, maxPI, hou, qian
+
     prediction = np.dot(X, Y.T)                          # prediction: [size_app, size_lib]
 
-    del XtX, YtY, Cu, Ci, X, Y, P, Pi, Pu, \
-        C, maxVU, maxVI, maxPU, maxPI
+    del X, Y
 
     for u in range(size_app):
         pre_u = prediction[u, :]
