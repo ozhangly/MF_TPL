@@ -67,7 +67,7 @@ def lib_sim_computed(relation: np.ndarray) -> None:
     ref_relation = relation.T                           # ref_relation: [size_lib, size_app]
     (size_app, size_lib) = relation.shape
 
-    simiL = np.zeros(shape=(size_lib, size_lib))
+    simiL = np.zeros(shape=(size_lib, size_lib), dtype=np.float16)
 
     lib_sim_com_bar = tqdm(desc='computing lib sim...', leave=False, total=size_lib)
     for i in range(size_lib):
@@ -93,7 +93,7 @@ def lib_sim_computed(relation: np.ndarray) -> None:
         lib_sim_normal_bar.update()
     lib_sim_normal_bar.close()
     del lib_sim_normal_bar
-    
+
     np.savetxt(fname=v_file_name, X=maxVI, fmt='%.4f')
     np.savetxt(fname=p_file_name, X=maxPI, fmt='%.4f')
 
