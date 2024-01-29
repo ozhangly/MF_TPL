@@ -26,11 +26,11 @@ def train(epochs) -> None:
     print('compute app similarity...')
     app_sim_st = time()
     utility.sim_computed.app_sim_computed(relation)
-    print('app similarity compute completed. [%.2f]' % (time() - app_sim_st))
+    print('app similarity compute completed. [%.2fs]' % (time() - app_sim_st))
     print('compute lib similarity...')
     lib_sim_st = time()
     utility.sim_computed.lib_sim_computed(relation)
-    print('lib similarity compute completed. [%.2f]' % (time() - lib_sim_st))
+    print('lib similarity compute completed. [%.2fs]' % (time() - lib_sim_st))
 
     (size_app, size_lib) = relation.shape
 
@@ -54,6 +54,7 @@ def train(epochs) -> None:
     # 准备工作都已做好
     # 用进度条还是用什么方法？统计每个epoch的用时，然后输出当前的epoch
     for epoch in range(epochs):
+        print(f'<<<<<<<<<<<<<<<epoch{epoch}>>>>>>>>>>>>>>>>>')
         epoch_st = time()
         YtY = np.dot(Y.T, Y)                           # YtY: [factor, factor]
 
@@ -103,7 +104,7 @@ def train(epochs) -> None:
             Y[i, :] = Yi
             update_lib_bar.update()
         update_lib_bar.close()
-        print('>>>>>>>>>>>epoch%d  [%.3fs]<<<<<<<<<<<' % (epoch, (time() - epoch_st)))
+        print('>>>>>>>>>>>>>>>>epoch%d  [%.3fs]<<<<<<<<<<<<<<<' % (epoch, (time() - epoch_st)))
 
     del XtX, YtY, Cu, Ci, Pi, Pu, \
         C, maxVU, maxVI, maxPU, maxPI, hou, qian
