@@ -17,11 +17,10 @@ def app_sim_computed(relation: np.ndarray) -> None:
         return
 
     remain = relation                                   # [size_app, size_lib]
-    sum_relation = np.sum(remain, axis=0)               # [size_lib,]
     ref_relation = remain.T                             # [size_lib, size_app]
     sum_ref_relation = np.sum(ref_relation, axis=0)     # [size_app,]
     (size_app, size_lib) = relation.shape
-    simiU = np.zeros(shape=(size_app, size_app))        # simiU: [size_app, size_app]
+    simiU = np.zeros(shape=(size_app, size_app), dtype=np.float16)        # simiU: [size_app, size_app]
 
     for u in range(size_app):
         user_u = ref_relation[:, u]         # user_u: [size_lib,]
@@ -29,6 +28,8 @@ def app_sim_computed(relation: np.ndarray) -> None:
         fm_tmp = (sum_ref_relation[u] + sum_ref_relation).T - fz_tmp  # 可以进行逐元素运算
         simiU[:, u] = fz_tmp / fm_tmp
         simiU[u, u] = 0                     # 自己和自己的相似度为0
+
+    del remain, ref_relation, sum_ref_relation
 
     # 需要对simiU进行排序运算
     # 对相似矩阵的列进行降序排序
@@ -40,8 +41,8 @@ def app_sim_computed(relation: np.ndarray) -> None:
     for u in range(size_app):
         maxVU[:, u] = maxVU[:, u] / maxW[u]
 
-    np.savetxt(fname=v_file_name, X=maxVU, fmt='%.7f')
-    np.savetxt(fname=p_file_name, X=maxPU, fmt='%.7f')
+    np.savetxt(fname=v_file_name, X=maxVU, fmt='%.4f')
+    np.savetxt(fname=p_file_name, X=maxPU, fmt='%.4f')
 
 
 def lib_sim_computed(relation: np.ndarray) -> None:
@@ -52,10 +53,8 @@ def lib_sim_computed(relation: np.ndarray) -> None:
     if utils.file_exists(v_file_name) and utils.file_exists(p_file_name):
         return
 
-    remain = relation                                   # remain: [size_app, size_lib]
     sum_relation = np.sum(relation, axis=0)             # sum_relation: [size_lib, ]
     ref_relation = relation.T                           # ref_relation: [size_lib, size_app]
-    sum_ref_relation = np.sum(ref_relation, axis=0)     # sum_ref_relation: [size_app, ]
     (size_app, size_lib) = relation.shape
 
     simiL = np.zeros(shape=(size_lib, size_lib))
@@ -66,6 +65,8 @@ def lib_sim_computed(relation: np.ndarray) -> None:
         simiL[:, i] = fz_tmp / fm_tmp
         simiL[i, i] = 0
 
+    del sum_relation, ref_relation
+
     sortA = np.sort(simiL, axis=0)[::-1]
     sortA_idx = np.argsort(simiL, axis=0)[::-1]
     maxVI = sortA[:args.top_k, :]
@@ -75,6 +76,6 @@ def lib_sim_computed(relation: np.ndarray) -> None:
     for i in range(size_lib):
         maxVI[:, i] = maxVI[:, i] / maxW[i]
 
-    np.savetxt(fname=v_file_name, X=maxVI, fmt='%.7f')
-    np.savetxt(fname=p_file_name, X=maxPI, fmt='%.7f')
+    np.savetxt(fname=v_file_name, X=maxVI, fmt='%.4f')
+    np.savetxt(fname=p_file_name, X=maxPI, fmt='%.4f')
 
