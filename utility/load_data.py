@@ -24,7 +24,7 @@ def load_relation_mat(train_file_path: str) -> np.ndarray:
         size_apk = max(size_apk, app_id)
         size_lib = max(max(tpl_list), size_lib)
 
-    relation = np.zeros(shape=(size_apk, size_lib), dtype=np.int8)
+    relation = np.zeros(shape=(size_apk+1, size_lib+1), dtype=np.int8)
 
     train_fp.seek(0)
     for line in train_fp.readlines():
