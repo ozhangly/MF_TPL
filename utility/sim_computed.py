@@ -16,8 +16,7 @@ def app_sim_computed(relation: np.ndarray) -> None:
     if utils.file_exists(v_file_name) and utils.file_exists(p_file_name):
         return
 
-    remain = relation                                   # [size_app, size_lib]
-    ref_relation = remain.T                             # [size_lib, size_app]
+    ref_relation = relation.T                             # [size_lib, size_app]
     sum_ref_relation = np.sum(ref_relation, axis=0)     # [size_app,]
     (size_app, size_lib) = relation.shape
     simiU = np.zeros(shape=(size_app, size_app), dtype=np.float16)        # simiU: [size_app, size_app]
@@ -29,7 +28,7 @@ def app_sim_computed(relation: np.ndarray) -> None:
         simiU[:, u] = fz_tmp / fm_tmp
         simiU[u, u] = 0                     # 自己和自己的相似度为0
 
-    del remain, ref_relation, sum_ref_relation
+    del ref_relation, sum_ref_relation
 
     # 需要对simiU进行排序运算
     # 对相似矩阵的列进行降序排序
