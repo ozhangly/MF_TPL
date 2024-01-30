@@ -18,20 +18,24 @@ def app_sim_computed(relation: np.ndarray) -> None:
     if utils.file_exists(v_file_name) and utils.file_exists(p_file_name):
         return
 
-    ref_relation = relation.T                               # [size_lib, size_app]
-    sum_ref_relation = np.sum(ref_relation, axis=0)         # [size_app,]
+    ref_relation = relation.T                                                 # [size_lib, size_app]
+    sum_ref_relation = np.sum(ref_relation, axis=0).astype(np.uint16)         # [size_app,]
     (size_app, size_lib) = relation.shape
-    simiU = np.zeros(shape=(size_app, size_app), dtype=np.float16)        # simiU: [size_app, size_app]
+    simiU = np.zeros(shape=(size_app, size_app), dtype=np.float16)            # simiU: [size_app, size_app]
 
     app_sim_com_bar = tqdm(desc='computing app similarity...', leave=False, total=size_app)
 
     for u in range(size_app):
-        user_u = ref_relation[:, u]         # user_u: [size_lib,]
-        fz_tmp = np.dot(relation, user_u)   # fz_tmp: [size_app, ]
-        fm_tmp = (sum_ref_relation[u] + sum_ref_relation).T - fz_tmp  # 可以进行逐元素运算
-        simiU[:, u] = fz_tmp / fm_tmp
-        simiU[u, u] = 0                     # 自己和自己的相似度为 0
-        app_sim_com_bar.update()
+        user_u = ref_relation[:, u]                                         # user_u: [size_lib,]
+        fz_tmp = np.dot(relation, user_u)                                   # fz_tmp: [size_app, ]
+        fm_tmp = (sum_ref_relation[u] + sum_ref_relation).T - fz_tmp        # 可以进行逐元素运算
+        try:
+            simiU[:, u] = fz_tmp / fm_tmp
+        except RuntimeWarning:
+            simiU[:, u] = np.zeros(shape=(size_app,))
+        finally:
+            simiU[u, u] = 0                     # 自己和自己的相似度为 0
+            app_sim_com_bar.update()
 
     app_sim_com_bar.close()
     del ref_relation, sum_ref_relation, app_sim_com_bar, relation
@@ -57,12 +61,16 @@ def app_sim_computed(relation: np.ndarray) -> None:
 
     app_sim_normal_bar = tqdm(desc='normalizing sim...', total=size_app, leave=False)
     for u in range(size_app):
-        maxVU[:, u] = maxVU[:, u] / maxW[u]
-        app_sim_normal_bar.update()
+        try:
+            maxVU[:, u] = maxVU[:, u] / maxW[u]
+        except RuntimeWarning:
+            maxVU[:, u] = np.zeros(shape=(args.top_k,))
+        finally:
+            app_sim_normal_bar.update()
     app_sim_normal_bar.close()
     del app_sim_normal_bar
 
-    np.savetxt(fname=v_file_name, X=maxVU, fmt='%.4f')
+    np.savetxt(fname=v_file_name, X=maxVU, fmt='%.9f')
     np.savetxt(fname=p_file_name, X=maxPU, fmt='%d')
 
 
@@ -74,7 +82,7 @@ def lib_sim_computed(relation: np.ndarray) -> None:
     if utils.file_exists(v_file_name) and utils.file_exists(p_file_name):
         return
 
-    sum_relation = np.sum(relation, axis=0).astype(np.float16)      # sum_relation: [size_lib, ]
+    sum_relation = np.sum(relation, axis=0).astype(np.uint32)       # sum_relation: [size_lib, ]
     ref_relation = relation.T                                       # ref_relation: [size_lib, size_app]
     (size_app, size_lib) = relation.shape
 
@@ -85,9 +93,13 @@ def lib_sim_computed(relation: np.ndarray) -> None:
         item_i = relation[:, i]                                     # item_i: [size_app, ]
         fz_tmp = np.dot(ref_relation, item_i)                       # fz_tmp: [size_lib, ]
         fm_tmp = (sum_relation[i] + sum_relation).T - fz_tmp
-        simiL[:, i] = fz_tmp / fm_tmp
-        simiL[i, i] = 0
-        lib_sim_com_bar.update()
+        try:
+            simiL[:, i] = fz_tmp / fm_tmp
+        except RuntimeWarning:
+            simiL[:, i] = np.zeros(shape=(size_lib,))
+        finally:
+            simiL[i, i] = 0
+            lib_sim_com_bar.update()
     lib_sim_com_bar.close()
     del sum_relation, ref_relation, lib_sim_com_bar
 
@@ -110,11 +122,15 @@ def lib_sim_computed(relation: np.ndarray) -> None:
 
     lib_sim_normal_bar = tqdm(desc='normalize lib sim...', total=size_lib, leave=False)
     for i in range(size_lib):
-        maxVI[:, i] = maxVI[:, i] / maxW[i]
-        lib_sim_normal_bar.update()
+        try:
+            maxVI[:, i] = maxVI[:, i] / maxW[i]
+        except RuntimeWarning:
+            maxVI[:, i] = np.zeros(shape=(args.top_k,))
+        finally:
+            lib_sim_normal_bar.update()
     lib_sim_normal_bar.close()
     del lib_sim_normal_bar
 
-    np.savetxt(fname=v_file_name, X=maxVI, fmt='%.4f')
+    np.savetxt(fname=v_file_name, X=maxVI, fmt='%.9f')
     np.savetxt(fname=p_file_name, X=maxPI, fmt='%d')
 
