@@ -36,8 +36,8 @@ def train(epochs) -> None:
 
     log_weight = args.weight / (np.log(np.sum(relation, axis=0) + 1) + 1)
 
-    maxVI = np.loadtxt(fname=args.similarity_path + '%s_%s/maxVI.txt' % (rmv_fold[0], rmv_fold[1]), dtype=np.float16)
-    maxPI = np.loadtxt(fname=args.similarity_path + '%s_%s/maxPI.txt' % (rmv_fold[0], rmv_fold[1]), dtype=np.float16)
+    maxVI = np.loadtxt(fname=args.similarity_path + '%s_%s/maxVI.txt' % (rmv_fold[0], rmv_fold[1]), dtype=np.uint16)
+    maxPI = np.loadtxt(fname=args.similarity_path + '%s_%s/maxPI.txt' % (rmv_fold[0], rmv_fold[1]), dtype=np.uint16)
     maxPU = np.loadtxt(fname=args.similarity_path + '%s_%s/maxPU.txt' % (rmv_fold[0], rmv_fold[1]), dtype=np.float16)
     maxVU = np.loadtxt(fname=args.similarity_path + '%s_%s/maxVU.txt' % (rmv_fold[0], rmv_fold[1]), dtype=np.float16)
 
@@ -49,7 +49,7 @@ def train(epochs) -> None:
     for i in range(size_lib):
         C[:, i] = 1 + log_weight[i]*relation[:, i]
 
-    position = np.zeros(shape=(size_app, 10), dtype=np.int8)
+    position = np.zeros(shape=(size_app, 10), dtype=np.uint16)
 
     # 准备工作都已做好
     # 用进度条还是用什么方法？统计每个epoch的用时，然后输出当前的epoch
@@ -114,9 +114,9 @@ def train(epochs) -> None:
     del X, Y
 
     for u in range(size_app):
-        pre_u = prediction[u, :]
+        pre_u = prediction[u, :].astype(np.float16)
         pre_u[np.argwhere(relation[u, :] == 1)] = 0
-        xiabiao = np.argsort(pre_u)[::-1]
+        xiabiao = np.argsort(pre_u)[::-1].astype(np.uint16)
         position[u, :10] = xiabiao[:10]
 
     del xiabiao, pre_u
