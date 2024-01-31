@@ -36,15 +36,15 @@ def train(epochs) -> None:
 
     log_weight = args.weight / (np.log(np.sum(relation, axis=0) + 1) + 1)
 
-    maxVI = np.loadtxt(fname=args.similarity_path + '%s_%s/maxVI.txt' % (rmv_fold[0], rmv_fold[1]), dtype=np.float16)
+    maxVI = np.loadtxt(fname=args.similarity_path + '%s_%s/maxVI.txt' % (rmv_fold[0], rmv_fold[1]), dtype=np.float32)
     maxPI = np.loadtxt(fname=args.similarity_path + '%s_%s/maxPI.txt' % (rmv_fold[0], rmv_fold[1]), dtype=np.uint16)
     maxPU = np.loadtxt(fname=args.similarity_path + '%s_%s/maxPU.txt' % (rmv_fold[0], rmv_fold[1]), dtype=np.uint16)
-    maxVU = np.loadtxt(fname=args.similarity_path + '%s_%s/maxVU.txt' % (rmv_fold[0], rmv_fold[1]), dtype=np.float16)
+    maxVU = np.loadtxt(fname=args.similarity_path + '%s_%s/maxVU.txt' % (rmv_fold[0], rmv_fold[1]), dtype=np.float32)
 
-    C = np.zeros(shape=(size_app, size_lib), dtype=np.float16)
+    C = np.zeros(shape=(size_app, size_lib), dtype=np.float32)
     np.random.seed(int(time()))
-    X = np.random.standard_normal(size=(size_app, args.factor)).astype(np.float16)
-    Y = np.random.standard_normal(size=(size_lib, args.factor)).astype(np.float16)
+    X = np.random.standard_normal(size=(size_app, args.factor)).astype(np.float32)
+    Y = np.random.standard_normal(size=(size_lib, args.factor)).astype(np.float32)
 
     for i in range(size_lib):
         C[:, i] = 1 + log_weight[i]*relation[:, i]
@@ -56,7 +56,7 @@ def train(epochs) -> None:
     for epoch in range(epochs):
         print(f'<<<<<<<<<<<<<<<epoch{epoch}>>>>>>>>>>>>>>>>>')
         epoch_st = time()
-        YtY = np.dot(Y.T, Y)                           # YtY: [factor, factor]
+        YtY = np.dot(Y.T, Y)                             # YtY: [factor, factor]
 
         update_app_bar = tqdm(desc='update app vector...', total=size_app, leave=True)
         for u in range(size_app):
@@ -76,7 +76,7 @@ def train(epochs) -> None:
             qian = np.dot(qian, Y)                       # qian: [factor, factor]
             qian = qian + YtY                            # qian: [factor, factor]
             qian = qian + args.lmda + args.alpha         # qian: [factor, factor]
-            Xu = np.dot(np.linalg.inv(qian), hou)        # Xu: [factor, ]
+            Xu = np.dot(np.linalg.pinv(qian), hou)        # Xu: [factor, ]
             X[u, :] = Xu
             update_app_bar.update()
         update_app_bar.close()
@@ -100,7 +100,7 @@ def train(epochs) -> None:
             qian = np.dot(qian, X)                       # qian: [factor, factor]
             qian = qian + XtX
             qian = qian + args.lmda + args.alpha
-            Yi = np.dot(np.linalg.inv(qian), hou)        # Yi: [factor, ]
+            Yi = np.dot(np.linalg.pinv(qian), hou)        # Yi: [factor, ]
             Y[i, :] = Yi
             update_lib_bar.update()
         update_lib_bar.close()
@@ -109,12 +109,12 @@ def train(epochs) -> None:
     del XtX, YtY, Cu, Ci, Pi, Pu, \
         C, maxVU, maxVI, maxPU, maxPI, hou, qian
 
-    prediction = np.dot(X, Y.T).astype(np.float16)           # prediction: [size_app, size_lib]
+    prediction = np.dot(X, Y.T).astype(np.float32)           # prediction: [size_app, size_lib]
 
     del X, Y
 
     for u in range(size_app):
-        pre_u = prediction[u, :].astype(np.float16)
+        pre_u = prediction[u, :].astype(np.float32)
         pre_u[np.argwhere(relation[u, :] == 1)] = 0
         xiabiao = np.argsort(pre_u)[::-1].astype(np.uint16)
         position[u, :10] = xiabiao[:10]
