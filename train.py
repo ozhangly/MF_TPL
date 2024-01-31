@@ -17,7 +17,7 @@ def train(epochs) -> None:
     rmv_fold = re.findall('[0-9]', args.training_dataset)
 
     train_file = args.training_path + args.training_dataset
-    print('load data...')
+    print('loading data...')
     load_st = time()
     relation = utility.load_data.load_relation_mat(train_file_path=train_file)
     print('load data completed. [%.2fs]' % (time() - load_st))
@@ -58,7 +58,7 @@ def train(epochs) -> None:
         epoch_st = time()
         YtY = np.dot(Y.T, Y)                             # YtY: [factor, factor]
 
-        update_app_bar = tqdm(desc='update app vector...', total=size_app, leave=True)
+        update_app_bar = tqdm(desc='updating app vector...', total=size_app, leave=True)
         for u in range(size_app):
             Cu = C[u, :].T                               # Cu: [size_lib, ]
             Pu = relation[u, :].T                        # Pu: [size_lib, ]
@@ -83,7 +83,7 @@ def train(epochs) -> None:
 
         XtX = np.dot(X.T, X)                             # XtX: [factor, factor]
 
-        update_lib_bar = tqdm(desc='update lib vector...', leave=True, total=size_lib)
+        update_lib_bar = tqdm(desc='updating lib vector...', leave=True, total=size_lib)
         for i in range(size_lib):
             Ci = C[:, i]                                 # Ci: [size_app, ]
             Pi = relation[:, i]
@@ -92,7 +92,7 @@ def train(epochs) -> None:
             Ni = Y[maxPI[:, i], :].T                     # Ni: [factor, top_k]
             WiNormal = maxVI[:, i]                       # WiNormal: [top_k, ]
             Wi = WiNormal / np.sum(WiNormal)             # Wi: [top_k, ]
-            hou = hou + args.alpha * Wi * Ni             # hou: [factor, ]
+            hou = hou + args.alpha * np.dot(Ni, Wi)      # hou: [factor, ]
             Ci = Ci - 1
             qian = X.T                                   # qian: [factor, size_app]
             for j in range(size_app):
