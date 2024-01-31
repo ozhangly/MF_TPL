@@ -36,9 +36,9 @@ def train(epochs) -> None:
 
     log_weight = args.weight / (np.log(np.sum(relation, axis=0) + 1) + 1)
 
-    maxVI = np.loadtxt(fname=args.similarity_path + '%s_%s/maxVI.txt' % (rmv_fold[0], rmv_fold[1]), dtype=np.uint16)
+    maxVI = np.loadtxt(fname=args.similarity_path + '%s_%s/maxVI.txt' % (rmv_fold[0], rmv_fold[1]), dtype=np.float16)
     maxPI = np.loadtxt(fname=args.similarity_path + '%s_%s/maxPI.txt' % (rmv_fold[0], rmv_fold[1]), dtype=np.uint16)
-    maxPU = np.loadtxt(fname=args.similarity_path + '%s_%s/maxPU.txt' % (rmv_fold[0], rmv_fold[1]), dtype=np.float16)
+    maxPU = np.loadtxt(fname=args.similarity_path + '%s_%s/maxPU.txt' % (rmv_fold[0], rmv_fold[1]), dtype=np.uint16)
     maxVU = np.loadtxt(fname=args.similarity_path + '%s_%s/maxVU.txt' % (rmv_fold[0], rmv_fold[1]), dtype=np.float16)
 
     C = np.zeros(shape=(size_app, size_lib), dtype=np.float16)
@@ -76,7 +76,7 @@ def train(epochs) -> None:
             qian = np.dot(qian, Y)                       # qian: [factor, factor]
             qian = qian + YtY                            # qian: [factor, factor]
             qian = qian + args.lmda + args.alpha         # qian: [factor, factor]
-            Xu = np.dot(qian.I, hou)                     # Xu: [factor, ]
+            Xu = np.dot(np.linalg.inv(qian), hou)        # Xu: [factor, ]
             X[u, :] = Xu
             update_app_bar.update()
         update_app_bar.close()
@@ -100,7 +100,7 @@ def train(epochs) -> None:
             qian = np.dot(qian, X)                       # qian: [factor, factor]
             qian = qian + XtX
             qian = qian + args.lmda + args.alpha
-            Yi = np.dot(qian.I, hou)                     # Yi: [factor, ]
+            Yi = np.dot(np.linalg.inv(qian), hou)        # Yi: [factor, ]
             Y[i, :] = Yi
             update_lib_bar.update()
         update_lib_bar.close()
@@ -109,7 +109,7 @@ def train(epochs) -> None:
     del XtX, YtY, Cu, Ci, Pi, Pu, \
         C, maxVU, maxVI, maxPU, maxPI, hou, qian
 
-    prediction = np.dot(X, Y.T)                          # prediction: [size_app, size_lib]
+    prediction = np.dot(X, Y.T).astype(np.float16)           # prediction: [size_app, size_lib]
 
     del X, Y
 
@@ -124,7 +124,7 @@ def train(epochs) -> None:
     # 保存预测结果
     utility.utils.ensure_dir(args.rec_output + 'rmv%s_fold%s/' % (rmv_fold[0], rmv_fold[1]))
     np.savetxt(fname=args.rec_output + 'rmv%s_fold%s/prediction_%s_%s.txt' % (rmv_fold[0], rmv_fold[1], rmv_fold[0], rmv_fold[1]),
-               X=prediction,
+               X=position,
                fmt='%d')
 
 
