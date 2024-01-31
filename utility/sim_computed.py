@@ -30,15 +30,17 @@ def app_sim_computed(relation: np.ndarray) -> None:
         fz_tmp = np.dot(relation, user_u)                                   # fz_tmp: [size_app, ]
         fm_tmp = (sum_ref_relation[u] + sum_ref_relation).T - fz_tmp        # 可以进行逐元素运算
         try:
-            simiU[:, u] = fz_tmp / fm_tmp
+            divide_val = (fz_tmp / fm_tmp).astype(np.float16)
         except RuntimeWarning:
-            simiU[:, u] = np.zeros(shape=(size_app,))
+            del divide_val
+            divide_val = np.zeros(shape=(size_app, ), dtype=np.float16)
         finally:
-            simiU[u, u] = 0                     # 自己和自己的相似度为 0
+            simiU[:, u] = divide_val
+            simiU[u, u] = 0
             app_sim_com_bar.update()
 
     app_sim_com_bar.close()
-    del ref_relation, sum_ref_relation, app_sim_com_bar, relation
+    del ref_relation, sum_ref_relation, app_sim_com_bar, relation, divide_val
 
     # 需要对simiU进行排序运算
     # 对相似矩阵的列进行降序排序
@@ -62,13 +64,15 @@ def app_sim_computed(relation: np.ndarray) -> None:
     app_sim_normal_bar = tqdm(desc='normalizing sim...', total=size_app, leave=False)
     for u in range(size_app):
         try:
-            maxVU[:, u] = maxVU[:, u] / maxW[u]
+            divide_val = (maxVU[:, u] / maxW[u]).astype(np.float16)
         except RuntimeWarning:
-            maxVU[:, u] = np.zeros(shape=(args.top_k,))
+            del divide_val
+            divide_val = np.zeros(shape=(args.top_k, ), dtype=np.float16)
         finally:
+            maxVU[:, u] = divide_val
             app_sim_normal_bar.update()
     app_sim_normal_bar.close()
-    del app_sim_normal_bar
+    del app_sim_normal_bar, divide_val
 
     np.savetxt(fname=v_file_name, X=maxVU, fmt='%.9f')
     np.savetxt(fname=p_file_name, X=maxPU, fmt='%d')
@@ -94,10 +98,12 @@ def lib_sim_computed(relation: np.ndarray) -> None:
         fz_tmp = np.dot(ref_relation, item_i)                       # fz_tmp: [size_lib, ]
         fm_tmp = (sum_relation[i] + sum_relation).T - fz_tmp
         try:
-            simiL[:, i] = fz_tmp / fm_tmp
+            divide_val = (fz_tmp / fm_tmp).astype(np.float16)
         except RuntimeWarning:
-            simiL[:, i] = np.zeros(shape=(size_lib,))
+            del divide_val
+            divide_val = np.zeros(shape=(size_lib, ), dtype=np.float16)
         finally:
+            simiL[:, i] = divide_val
             simiL[i, i] = 0
             lib_sim_com_bar.update()
     lib_sim_com_bar.close()
@@ -123,10 +129,12 @@ def lib_sim_computed(relation: np.ndarray) -> None:
     lib_sim_normal_bar = tqdm(desc='normalize lib sim...', total=size_lib, leave=False)
     for i in range(size_lib):
         try:
-            maxVI[:, i] = maxVI[:, i] / maxW[i]
+            divide_val = (maxVI[:, i] / maxW[i]).astype(np.float16)
         except RuntimeWarning:
-            maxVI[:, i] = np.zeros(shape=(args.top_k,))
+            del divide_val
+            divide_val = np.zeros(shape=(args.top_k, ), dtype=np.float16)
         finally:
+            maxVI[:, i] = divide_val
             lib_sim_normal_bar.update()
     lib_sim_normal_bar.close()
     del lib_sim_normal_bar
