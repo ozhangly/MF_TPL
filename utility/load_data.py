@@ -8,10 +8,10 @@ args = utility.config.args
 
 
 def load_relation_mat(train_file_path: str) -> np.ndarray:
-    rmv_fold = re.findall('[0-9]', args.training_dataset)
-    relation_file_name = 'relation_%s_%s.txt' % (rmv_fold[0], rmv_fold[1])
+    fold_rmv = re.findall('[0-9]', args.training_dataset)
+    relation_file_name = 'relation_%s_%s.txt' % (fold_rmv[0], fold_rmv[1])
     if os.path.exists(args.relation_path + relation_file_name):
-        relation = np.loadtxt(args.relation + relation_file_name, dtype=np.int8)
+        relation = np.loadtxt(args.relation_path + relation_file_name, dtype=np.int8)
         return relation
 
     size_apk: int = 0
