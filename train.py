@@ -8,13 +8,12 @@ import numpy as np
 
 from tqdm import tqdm
 from time import time
-from test_mf import test
 
 args = utility.config.args
 
 
 def train(epochs) -> None:
-    rmv_fold = re.findall('[0-9]', args.training_dataset)
+    fold_rmv = re.findall('[0-9]', args.training_dataset)
 
     train_file = args.training_path + args.training_dataset
     print('loading data...')
@@ -36,15 +35,15 @@ def train(epochs) -> None:
 
     log_weight = args.weight / (np.log(np.sum(relation, axis=0) + 1) + 1)
 
-    maxVI = np.loadtxt(fname=args.similarity_path + '%s_%s/maxVI.txt' % (rmv_fold[0], rmv_fold[1]), dtype=np.float32)
-    maxPI = np.loadtxt(fname=args.similarity_path + '%s_%s/maxPI.txt' % (rmv_fold[0], rmv_fold[1]), dtype=np.uint16)
-    maxPU = np.loadtxt(fname=args.similarity_path + '%s_%s/maxPU.txt' % (rmv_fold[0], rmv_fold[1]), dtype=np.uint16)
-    maxVU = np.loadtxt(fname=args.similarity_path + '%s_%s/maxVU.txt' % (rmv_fold[0], rmv_fold[1]), dtype=np.float32)
+    maxVI = np.loadtxt(fname=args.similarity_path + '%s_%s/maxVI.txt' % (fold_rmv[0], fold_rmv[1]))
+    maxPI = np.loadtxt(fname=args.similarity_path + '%s_%s/maxPI.txt' % (fold_rmv[0], fold_rmv[1]), dtype=np.uint16)
+    maxPU = np.loadtxt(fname=args.similarity_path + '%s_%s/maxPU.txt' % (fold_rmv[0], fold_rmv[1]), dtype=np.uint16)
+    maxVU = np.loadtxt(fname=args.similarity_path + '%s_%s/maxVU.txt' % (fold_rmv[0], fold_rmv[1]))
 
-    C = np.zeros(shape=(size_app, size_lib), dtype=np.float32)
-    np.random.seed(int(time()))
-    X = np.random.standard_normal(size=(size_app, args.factor)).astype(np.float32)
-    Y = np.random.standard_normal(size=(size_lib, args.factor)).astype(np.float32)
+    C = np.zeros(shape=(size_app, size_lib))
+    rd = np.random.RandomState(200)
+    X = rd.random(size=(size_app, args.factor)) + 0.01
+    Y = rd.random(size=(size_lib, args.factor)) + 0.01
 
     for i in range(size_lib):
         C[:, i] = 1 + log_weight[i]*relation[:, i]
@@ -52,9 +51,8 @@ def train(epochs) -> None:
     position = np.zeros(shape=(size_app, 10), dtype=np.uint16)
 
     # 准备工作都已做好
-    # 用进度条还是用什么方法？统计每个epoch的用时，然后输出当前的epoch
     for epoch in range(epochs):
-        print(f'<<<<<<<<<<<<<<<epoch{epoch}>>>>>>>>>>>>>>>>>')
+        print(f'>>>>>>>>>>>>>>>>>>>>>epoch{epoch}<<<<<<<<<<<<<<<<<<<<<<')
         epoch_st = time()
         YtY = np.dot(Y.T, Y)                             # YtY: [factor, factor]
 
@@ -76,7 +74,12 @@ def train(epochs) -> None:
             qian = np.dot(qian, Y)                       # qian: [factor, factor]
             qian = qian + YtY                            # qian: [factor, factor]
             qian = qian + args.lmda + args.alpha         # qian: [factor, factor]
-            Xu = np.dot(np.linalg.pinv(qian), hou)        # Xu: [factor, ]
+            qian = np.nan_to_num(qian)
+            condition_num = np.linalg.cond(qian)
+            if condition_num > 1e10:                     #
+                Xu = np.dot(np.linalg.pinv(qian), hou)        # Xu: [factor, ]
+            else:
+                Xu = np.dot(np.linalg.inv(qian), hou)
             X[u, :] = Xu
             update_app_bar.update()
         update_app_bar.close()
@@ -88,33 +91,48 @@ def train(epochs) -> None:
             Ci = C[:, i]                                 # Ci: [size_app, ]
             Pi = relation[:, i]
             hou = Ci * Pi
-            hou = np.dot(X.T, hou)                       # hou: [factor, ]
-            Ni = Y[maxPI[:, i], :].T                     # Ni: [factor, top_k]
-            WiNormal = maxVI[:, i]                       # WiNormal: [top_k, ]
-            Wi = WiNormal / np.sum(WiNormal)             # Wi: [top_k, ]
-            hou = hou + args.alpha * np.dot(Ni, Wi)      # hou: [factor, ]
+            hou = np.dot(X.T, hou)                              # hou: [factor, ]
+            Ni = Y[maxPI[:, i], :].T                            # Ni: [factor, top_k]
+            WiNormal = maxVI[:, i]                              # WiNormal: [top_k, ]
+            Wi = WiNormal / np.sum(WiNormal)                    # Wi: [top_k, ]
+            hou = hou + args.alpha * np.dot(Ni, Wi)             # hou: [factor, ]
             Ci = Ci - 1
-            qian = X.T                                   # qian: [factor, size_app]
+            qian = X.T                                          # qian: [factor, size_app]
             for j in range(size_app):
                 qian[:, j] = qian[:, j] * Ci[j]
-            qian = np.dot(qian, X)                       # qian: [factor, factor]
+            qian = np.dot(qian, X)                              # qian: [factor, factor]
             qian = qian + XtX
             qian = qian + args.lmda + args.alpha
-            Yi = np.dot(np.linalg.pinv(qian), hou)        # Yi: [factor, ]
+            qian = np.nan_to_num(qian)
+            condition_num = np.linalg.cond(qian)
+            if condition_num > 1e10:
+                Yi = np.dot(np.linalg.pinv(qian), hou)          # Yi: [factor, ]
+            else:
+                Yi = np.dot(np.linalg.inv(qian), hou)
             Y[i, :] = Yi
             update_lib_bar.update()
         update_lib_bar.close()
-        print('>>>>>>>>>>>>>>>>epoch%d  [%.3fs]<<<<<<<<<<<<<<<' % (epoch, (time() - epoch_st)))
+        print('epoch%d  [%.3fs]' % (epoch, (time() - epoch_st)))
 
     del XtX, YtY, Cu, Ci, Pi, Pu, \
         C, maxVU, maxVI, maxPU, maxPI, hou, qian
 
-    prediction = np.dot(X, Y.T).astype(np.float32)           # prediction: [size_app, size_lib]
+    prediction = np.dot(X, Y.T)                                    # prediction: [size_app, size_lib]
+
+    utility.utils.ensure_dir(args.rec_output + 'fold%s_rmv%s/' % (fold_rmv[0], fold_rmv[1]))
+    np.savetxt(
+        fname=args.rec_output + 'fold%s_rmv%s/X_%s_%s.txt' % (fold_rmv[0], fold_rmv[1], fold_rmv[0], fold_rmv[1]),
+        X=X,
+        fmt='%.5f')
+    np.savetxt(
+        fname=args.rec_output + 'fold%s_rmv%s/Y_%s_%s.txt' % (fold_rmv[0], fold_rmv[1], fold_rmv[0], fold_rmv[1]),
+        X=Y,
+        fmt='%.5f')
 
     del X, Y
 
     for u in range(size_app):
-        pre_u = prediction[u, :].astype(np.float32)
+        pre_u = prediction[u, :]
         pre_u[np.argwhere(relation[u, :] == 1)] = 0
         xiabiao = np.argsort(pre_u)[::-1].astype(np.uint16)
         position[u, :10] = xiabiao[:10]
@@ -122,14 +140,16 @@ def train(epochs) -> None:
     del xiabiao, pre_u
 
     # 保存预测结果
-    utility.utils.ensure_dir(args.rec_output + 'rmv%s_fold%s/' % (rmv_fold[0], rmv_fold[1]))
-    np.savetxt(fname=args.rec_output + 'rmv%s_fold%s/prediction_%s_%s.txt' % (rmv_fold[0], rmv_fold[1], rmv_fold[0], rmv_fold[1]),
+    # 保存一下X, Y的结果
+
+    np.savetxt(fname=args.rec_output + 'fold%s_rmv%s/prediction_%s_%s.txt' % (fold_rmv[0], fold_rmv[1], fold_rmv[0], fold_rmv[1]),
                X=position,
                fmt='%d')
 
 
 if __name__ == '__main__':
     # 训练结束后保存预测结果
+    st_time = time()
     train(args.epochs)
-    print('>>>>>>>>>>>>>>>>>>>>>进行测试<<<<<<<<<<<<<<<<<<<<<')
-    test()
+    print('training completed.   [%.3fm]' % ((time() - st_time)/60))
+    # test()
