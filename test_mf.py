@@ -19,7 +19,7 @@ def get_performance(user_post, r, auc) -> Dict:
     for k in ks:
         precision.append(utility.metrics.precision_at_k(r, k))
         recall.append(utility.metrics.recall_at_k(r, k, len(user_post)))
-        ndcg.append(utility.metrics.ndcg_at_k())
+        ndcg.append(utility.metrics.ndcg_at_k(r, k))
         fone.append(utility.metrics.F1(utility.metrics.precision_at_k(r, k), utility.metrics.recall_at_k(r, k, len(user_post)))),
         mrr.append(utility.metrics.mrr_at_k(r, k)),
         map.append(utility.metrics.average_precision(r, k))
@@ -30,7 +30,7 @@ def get_performance(user_post, r, auc) -> Dict:
     }
 
 
-def test_one_user(user_pre, user_pos) -> Dict:
+def test_one_user(user_pos, user_pre) -> Dict:
     r: List = []
     for i in user_pre:
         if i in user_pos:
@@ -45,7 +45,7 @@ def test() -> None:
     test_num: int = 0
     rmv_fold = re.findall('[0-9]', args.testing_dataset)
     recommend_res_fp = open(file=args.rec_output + 'rmv%s_fold%s/test_MF_%s_%s.json' % (rmv_fold[0], rmv_fold[1], rmv_fold[0], rmv_fold[1]), mode='w')
-    recommend_metric_fp = open(file=args.rec_output + 'rmv%s_fold%s/metric_output.csv', mode='w')
+    recommend_metric_fp = open(file=args.rec_output + 'rmv%s_fold%s/metric_output.csv' % (rmv_fold[0], rmv_fold[1]), mode='w')
 
     res = {
         'recall': np.zeros(shape=(len(ks),)), 'precision': np.zeros(shape=(len(ks),)), 'ndcg': np.zeros(shape=(len(ks),)),
@@ -58,7 +58,7 @@ def test() -> None:
             test_obj = json.loads(line.strip('\n'))
             app_id   = test_obj['app_id']
             pos_list = test_obj['removed_tpl_list']
-            pre_list = prediction[app_id, :].tolist()
+            pre_list = prediction[app_id, :].astype(np.uint16).tolist()
 
             write_data = {
                 'app_id': app_id,
@@ -86,12 +86,16 @@ def test() -> None:
     res['mrr'] /= test_num
 
     write_res = '%s\n%s\n%s\n%s\n%s\n%s\n' % (
-        ','.join([r for r in res['recall']]),
-        ','.join([r for r in res['precision']]),
-        ','.join([r for r in res['fone']]),
-        ','.join([r for r in res['mrr']]),
-        ','.join([r for r in res['map']]),
-        ','.join([r for r in res['ndcg']])
+        ','.join(['%.5f'% r for r in res['recall']]),
+        ','.join(['%.5f' % r for r in res['precision']]),
+        ','.join(['%.5f' % r for r in res['fone']]),
+        ','.join(['%.5f' % r for r in res['mrr']]),
+        ','.join(['%.5f' % r for r in res['map']]),
+        ','.join(['%.5f' % r for r in res['ndcg']])
     )
 
     recommend_metric_fp.write(write_res)
+
+
+if __name__ == '__main__':
+    test()
