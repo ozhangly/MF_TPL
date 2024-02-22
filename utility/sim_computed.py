@@ -4,7 +4,7 @@ import utility.config as config
 import utility.utils as utils
 
 from tqdm import tqdm
-
+from typing import Dict
 
 args = config.args
 
@@ -21,7 +21,7 @@ def app_sim_computed(relation: np.ndarray) -> None:
     ref_relation = relation.T                                                 # [size_lib, size_app]
     sum_ref_relation = np.sum(ref_relation, axis=0).astype(np.uint16)         # [size_app,]
     (size_app, size_lib) = relation.shape
-    simiU = np.zeros(shape=(size_app, size_app), dtype=np.float32)            # simiU: [size_app, size_app]
+    simiU = np.zeros(shape=(size_app, size_app))                              # simiU: [size_app, size_app]
 
     app_sim_com_bar = tqdm(desc='computing app similarity...', leave=False, total=size_app)
 
@@ -42,7 +42,7 @@ def app_sim_computed(relation: np.ndarray) -> None:
     maxPU = np.zeros(shape=(args.top_k, size_app)).astype(np.uint16)
     for u in range(size_app):
         user_u = simiU[:, u]                                            # user_u: [size_app, ]
-        sort_user_idx = np.argsort(user_u)[::-1].astype(np.uint16)
+        sort_user_idx = np.argsort(user_u)[::-1].astype(np.uint16)      # sort_user_idx: [size_app, ]
         sort_user = user_u[sort_user_idx]
         maxPU[:args.top_k, u] = sort_user_idx[: args.top_k]
         simiU[:, u] = sort_user
@@ -62,10 +62,6 @@ def app_sim_computed(relation: np.ndarray) -> None:
         app_sim_normal_bar.update()
     app_sim_normal_bar.close()
     del app_sim_normal_bar
-
-    # 还是有nan的值，不知道为什么，可能是中间有些步骤造成的
-    # P矩阵中是没有nan的，在V矩阵中检测是否有，如果有就替换成0
-    np.nan_to_num(maxVU)
 
     np.savetxt(fname=v_file_name, X=maxVU)
     np.savetxt(fname=p_file_name, X=maxPU, fmt='%d')
