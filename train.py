@@ -18,7 +18,7 @@ def train(epochs) -> None:
     train_file = args.training_path + args.training_dataset
     print('loading data...')
     load_st = time()
-    relation = utility.load_data.load_relation_mat(train_file_path=train_file)
+    relation, app_order_id2app_id, app_id2app_order_id = utility.load_data.load_relation_mat(train_file_path=train_file)
     print('load data completed. [%.2fs]' % (time() - load_st))
 
     # 计算app相似度和lib相似度
@@ -119,20 +119,8 @@ def train(epochs) -> None:
 
     prediction = np.dot(X, Y.T)                                    # prediction: [size_app, size_lib]
 
-    utility.utils.ensure_dir(args.rec_output + 'fold%s_rmv%s/' % (fold_rmv[0], fold_rmv[1]))
-    np.savetxt(
-        fname=args.rec_output + 'fold%s_rmv%s/X_%s_%s.txt' % (fold_rmv[0], fold_rmv[1], fold_rmv[0], fold_rmv[1]),
-        X=X,
-        fmt='%.5f')
-    np.savetxt(
-        fname=args.rec_output + 'fold%s_rmv%s/Y_%s_%s.txt' % (fold_rmv[0], fold_rmv[1], fold_rmv[0], fold_rmv[1]),
-        X=Y,
-        fmt='%.5f')
-
-    del X, Y
-
     for u in range(size_app):
-        pre_u = prediction[u, :]
+        pre_u = prediction[u, :]                                    # pre_u: [size_lib, ]
         pre_u[np.argwhere(relation[u, :] == 1)] = 0
         xiabiao = np.argsort(pre_u)[::-1].astype(np.uint16)
         position[u, :10] = xiabiao[:10]
@@ -140,8 +128,6 @@ def train(epochs) -> None:
     del xiabiao, pre_u
 
     # 保存预测结果
-    # 保存一下X, Y的结果
-
     np.savetxt(fname=args.rec_output + 'fold%s_rmv%s/prediction_%s_%s.txt' % (fold_rmv[0], fold_rmv[1], fold_rmv[0], fold_rmv[1]),
                X=position,
                fmt='%d')
