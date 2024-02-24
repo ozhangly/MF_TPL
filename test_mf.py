@@ -1,5 +1,6 @@
 import re
 import json
+import utility.utils
 import utility.config
 import utility.metrics
 
@@ -43,22 +44,30 @@ def test_one_user(user_pos, user_pre) -> Dict:
 
 def test() -> None:
     test_num: int = 0
-    rmv_fold = re.findall('[0-9]', args.testing_dataset)
-    recommend_res_fp = open(file=args.rec_output + 'rmv%s_fold%s/test_MF_%s_%s.json' % (rmv_fold[0], rmv_fold[1], rmv_fold[0], rmv_fold[1]), mode='w')
-    recommend_metric_fp = open(file=args.rec_output + 'rmv%s_fold%s/metric_output.csv' % (rmv_fold[0], rmv_fold[1]), mode='w')
+    fold_rmv = re.findall('[0-9]', args.testing_dataset)
+    utility.utils.ensure_dir(args.rec_output + 'fold%s_rmv%s/' % (fold_rmv[0], fold_rmv[1]))
+    recommend_res_fp = open(file=args.rec_output + 'fold%s_rmv%s/test_MF_%s_%s.json' % (fold_rmv[0], fold_rmv[1], fold_rmv[0], fold_rmv[1]), mode='w')
+    recommend_metric_fp = open(file=args.rec_output + 'fold%s_rmv%s/metric_output.csv' % (fold_rmv[0], fold_rmv[1]), mode='w')
 
     res = {
         'recall': np.zeros(shape=(len(ks),)), 'precision': np.zeros(shape=(len(ks),)), 'ndcg': np.zeros(shape=(len(ks),)),
         'fone': np.zeros(shape=(len(ks),)), 'mrr': np.zeros(shape=(len(ks),)), 'map': np.zeros(shape=(len(ks),))
     }
 
-    prediction = np.loadtxt(args.rec_output + 'rmv%s_fold%s/prediction_%s_%s.txt' % (rmv_fold[0], rmv_fold[1], rmv_fold[0], rmv_fold[1]))
+    prediction = np.loadtxt(args.rec_output + 'fold%s_rmv%s/prediction_%s_%s.txt' % (fold_rmv[0], fold_rmv[1], fold_rmv[0], fold_rmv[1]))
+
+    dict2 = json.load(fp=open(file=args.relation_path + 'app_id2app_order_id_%s_%s.json' % (fold_rmv[0], fold_rmv[1])))
+    app_id2app_order_id = utility.utils.process_dict_key(dict2)
+
+    del dict2
+
     with open(file=args.testing_path + args.testing_dataset, mode='r') as fp:
         for line in tqdm(fp.readlines(), desc='test progress...', leave=True):
             test_obj = json.loads(line.strip('\n'))
             app_id   = test_obj['app_id']
             pos_list = test_obj['removed_tpl_list']
-            pre_list = prediction[app_id, :].astype(np.uint16).tolist()
+            app_order_id = app_id2app_order_id[app_id]
+            pre_list = prediction[app_order_id, :].astype(np.uint16).tolist()
 
             write_data = {
                 'app_id': app_id,
