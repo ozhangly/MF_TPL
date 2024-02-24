@@ -4,7 +4,6 @@ import utility.config as config
 import utility.utils as utils
 
 from tqdm import tqdm
-from typing import Dict
 
 args = config.args
 
@@ -116,8 +115,6 @@ def lib_sim_computed(relation: np.ndarray) -> None:
         lib_sim_normal_bar.update()
     lib_sim_normal_bar.close()
     del lib_sim_normal_bar
-
-    # maxVI = np.nan_to_num(maxVI).astype(np.float32)
 
     np.savetxt(fname=v_file_name, X=maxVI)
     np.savetxt(fname=p_file_name, X=maxPI, fmt='%d')
