@@ -43,16 +43,16 @@ def load_relation_mat(train_file_path: str) -> Tuple[np.ndarray, Dict, Dict]:
         size_apk += 1
         size_lib = max(max(tpl_list), size_lib)
 
-    relation = np.zeros(shape=(size_apk, size_lib+1), dtype=np.int8)
+    relation = np.zeros(shape=(size_apk, size_lib), dtype=np.int8)
 
     train_fp.seek(0)
     for line in train_fp.readlines():
         obj = json.loads(line.strip('\n'))
         app_id = obj['app_id']
         tpl_list = obj['tpl_list']
+        app_orderid = app_id2app_order_id[app_id]
         for tpl in tpl_list:
-            app_id = app_id2app_order_id[app_id]
-            relation[app_id, tpl] = 1
+            relation[app_orderid, tpl-1] = 1
 
     np.savetxt(fname=args.relation_path + relation_file_name, X=relation, fmt='%d')
     # 两个字典也保存
