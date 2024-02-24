@@ -45,6 +45,8 @@ def train(epochs) -> None:
     X = rd.random(size=(size_app, args.factor)) + 0.01
     Y = rd.random(size=(size_lib, args.factor)) + 0.01
 
+    eye = np.eye(args.factor)
+
     for i in range(size_lib):
         C[:, i] = 1 + log_weight[i]*relation[:, i]
 
@@ -58,28 +60,23 @@ def train(epochs) -> None:
 
         update_app_bar = tqdm(desc='updating app vector...', total=size_app, leave=True)
         for u in range(size_app):
-            Cu = C[u, :].T                               # Cu: [size_lib, ]
-            Pu = relation[u, :].T                        # Pu: [size_lib, ]
-            hou = Cu * Pu                                # hou: [size_lib, ]
-            hou = np.dot(Y.T, hou)                       # hou: [factor, ]
-            Nu = X[maxPU[:, u], :].T                     # Nu: [factor, top_k]
-            WuNormal = maxVU[:, u]                       # WuNormal: [top_k, ]
-            Wu = WuNormal / np.sum(WuNormal)             # Wu: [top_k, ]
-            hou = hou + args.alpha * np.dot(Nu, Wu)      # hou: [factor, ]
+            Cu = C[u, :].T                                                     # Cu: [size_lib, ]
+            Pu = relation[u, :].T                                              # Pu: [size_lib, ]
+            hou = Cu * Pu                                                      # hou: [size_lib, ]
+            hou = np.dot(Y.T, hou)                                             # hou: [factor, ]
+            Nu = X[maxPU[:, u], :].T                                           # Nu: [factor, top_k]
+            WuNormal = maxVU[:, u]                                             # WuNormal: [top_k, ]
+            Wu = WuNormal / np.sum(WuNormal)                                   # Wu: [top_k, ]
+            hou = hou + args.alpha * np.dot(Nu, Wu)                            # hou: [factor, ]
 
-            Cu = Cu - 1                                  # Cu: [size_lib, ]
-            qian = Y.T                                   # qian: [factor, size_lib]
+            Cu = Cu - 1                                                        # Cu: [size_lib, ]
+            qian = Y.T                                                         # qian: [factor, size_lib]
             for j in range(size_lib):
                 qian[:, j] = qian[:, j] * Cu[j]
-            qian = np.dot(qian, Y)                       # qian: [factor, factor]
-            qian = qian + YtY                            # qian: [factor, factor]
-            qian = qian + args.lmda + args.alpha         # qian: [factor, factor]
-            qian = np.nan_to_num(qian)
-            condition_num = np.linalg.cond(qian)
-            if condition_num > 1e10:                     #
-                Xu = np.dot(np.linalg.pinv(qian), hou)        # Xu: [factor, ]
-            else:
-                Xu = np.dot(np.linalg.inv(qian), hou)
+            qian = np.dot(qian, Y)                                             # qian: [factor, factor]
+            qian = qian + YtY                                                  # qian: [factor, factor]
+            qian = qian + (args.lmda + args.alpha * np.sum(Wu)) * eye          # qian: [factor, factor]
+            Xu = np.dot(np.linalg.inv(qian), hou)
             X[u, :] = Xu
             update_app_bar.update()
         update_app_bar.close()
@@ -88,27 +85,22 @@ def train(epochs) -> None:
 
         update_lib_bar = tqdm(desc='updating lib vector...', leave=True, total=size_lib)
         for i in range(size_lib):
-            Ci = C[:, i]                                 # Ci: [size_app, ]
+            Ci = C[:, i]                                                          # Ci: [size_app, ]
             Pi = relation[:, i]
             hou = Ci * Pi
-            hou = np.dot(X.T, hou)                              # hou: [factor, ]
-            Ni = Y[maxPI[:, i], :].T                            # Ni: [factor, top_k]
-            WiNormal = maxVI[:, i]                              # WiNormal: [top_k, ]
-            Wi = WiNormal / np.sum(WiNormal)                    # Wi: [top_k, ]
-            hou = hou + args.alpha * np.dot(Ni, Wi)             # hou: [factor, ]
+            hou = np.dot(X.T, hou)                                                # hou: [factor, ]
+            Ni = Y[maxPI[:, i], :].T                                              # Ni: [factor, top_k]
+            WiNormal = maxVI[:, i]                                                # WiNormal: [top_k, ]
+            Wi = WiNormal / np.sum(WiNormal)                                      # Wi: [top_k, ]
+            hou = hou + args.alpha * np.dot(Ni, Wi)                               # hou: [factor, ]
             Ci = Ci - 1
-            qian = X.T                                          # qian: [factor, size_app]
+            qian = X.T                                                            # qian: [factor, size_app]
             for j in range(size_app):
                 qian[:, j] = qian[:, j] * Ci[j]
-            qian = np.dot(qian, X)                              # qian: [factor, factor]
+            qian = np.dot(qian, X)                                                # qian: [factor, factor]
             qian = qian + XtX
-            qian = qian + args.lmda + args.alpha
-            qian = np.nan_to_num(qian)
-            condition_num = np.linalg.cond(qian)
-            if condition_num > 1e10:
-                Yi = np.dot(np.linalg.pinv(qian), hou)          # Yi: [factor, ]
-            else:
-                Yi = np.dot(np.linalg.inv(qian), hou)
+            qian = qian + (args.lmda + args.alpha * np.sum(Wi)) * eye             # qian: [factor, factor]
+            Yi = np.dot(np.linalg.inv(qian), hou)
             Y[i, :] = Yi
             update_lib_bar.update()
         update_lib_bar.close()
@@ -123,11 +115,12 @@ def train(epochs) -> None:
         pre_u = prediction[u, :]                                    # pre_u: [size_lib, ]
         pre_u[np.argwhere(relation[u, :] == 1)] = 0
         xiabiao = np.argsort(pre_u)[::-1].astype(np.uint16)
-        position[u, :10] = xiabiao[:10]
+        position[u, :10] = xiabiao[:10] + 1
 
     del xiabiao, pre_u
 
     # 保存预测结果
+    utility.utils.ensure_dir(args.rec_output + 'fold%s_rmv%s/' % (fold_rmv[0], fold_rmv[1]))
     np.savetxt(fname=args.rec_output + 'fold%s_rmv%s/prediction_%s_%s.txt' % (fold_rmv[0], fold_rmv[1], fold_rmv[0], fold_rmv[1]),
                X=position,
                fmt='%d')
