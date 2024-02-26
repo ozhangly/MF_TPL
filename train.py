@@ -36,13 +36,14 @@ def train(epochs) -> None:
     log_weight = args.weight / (np.log(np.sum(relation, axis=0) + 1) + 1)
 
     maxVI = np.loadtxt(fname=args.similarity_path + '%s_%s/maxVI.txt' % (fold_rmv[0], fold_rmv[1]))
-    maxPI = np.loadtxt(fname=args.similarity_path + '%s_%s/maxPI.txt' % (fold_rmv[0], fold_rmv[1]), dtype=np.uint16)
-    maxPU = np.loadtxt(fname=args.similarity_path + '%s_%s/maxPU.txt' % (fold_rmv[0], fold_rmv[1]), dtype=np.uint16)
+    maxPI = np.loadtxt(fname=args.similarity_path + '%s_%s/maxPI.txt' % (fold_rmv[0], fold_rmv[1])).astype(np.uint16)
+    maxPU = np.loadtxt(fname=args.similarity_path + '%s_%s/maxPU.txt' % (fold_rmv[0], fold_rmv[1])).astype(np.uint16)
     maxVU = np.loadtxt(fname=args.similarity_path + '%s_%s/maxVU.txt' % (fold_rmv[0], fold_rmv[1]))
 
     C = np.zeros(shape=(size_app, size_lib))
     rd = np.random.RandomState(200)
     X = rd.random(size=(size_app, args.factor)) + 0.01
+    rd = np.random.RandomState(110)
     Y = rd.random(size=(size_lib, args.factor)) + 0.01
 
     eye = np.eye(args.factor)
@@ -60,7 +61,7 @@ def train(epochs) -> None:
 
         update_app_bar = tqdm(desc='updating app vector...', total=size_app, leave=True)
         for u in range(size_app):
-            Cu = C[u, :].T                                                     # Cu: [size_lib, ]
+            Cu = C[u, :].T.copy()                                              # Cu: [size_lib, ]
             Pu = relation[u, :].T                                              # Pu: [size_lib, ]
             hou = Cu * Pu                                                      # hou: [size_lib, ]
             hou = np.dot(Y.T, hou)                                             # hou: [factor, ]
@@ -70,7 +71,7 @@ def train(epochs) -> None:
             hou = hou + args.alpha * np.dot(Nu, Wu)                            # hou: [factor, ]
 
             Cu = Cu - 1                                                        # Cu: [size_lib, ]
-            qian = Y.T                                                         # qian: [factor, size_lib]
+            qian = Y.T.copy()                                                  # qian: [factor, size_lib]
             for j in range(size_lib):
                 qian[:, j] = qian[:, j] * Cu[j]
             qian = np.dot(qian, Y)                                             # qian: [factor, factor]
@@ -78,6 +79,7 @@ def train(epochs) -> None:
             qian = qian + (args.lmda + args.alpha * np.sum(Wu)) * eye          # qian: [factor, factor]
             Xu = np.dot(np.linalg.inv(qian), hou)
             X[u, :] = Xu
+            del Cu, qian
             update_app_bar.update()
         update_app_bar.close()
 
@@ -85,7 +87,7 @@ def train(epochs) -> None:
 
         update_lib_bar = tqdm(desc='updating lib vector...', leave=True, total=size_lib)
         for i in range(size_lib):
-            Ci = C[:, i]                                                          # Ci: [size_app, ]
+            Ci = C[:, i].copy()                                                   # Ci: [size_app, ]
             Pi = relation[:, i]
             hou = Ci * Pi
             hou = np.dot(X.T, hou)                                                # hou: [factor, ]
@@ -94,25 +96,27 @@ def train(epochs) -> None:
             Wi = WiNormal / np.sum(WiNormal)                                      # Wi: [top_k, ]
             hou = hou + args.alpha * np.dot(Ni, Wi)                               # hou: [factor, ]
             Ci = Ci - 1
-            qian = X.T                                                            # qian: [factor, size_app]
+            qian = X.T.copy()                                                     # qian: [factor, size_app]
             for j in range(size_app):
                 qian[:, j] = qian[:, j] * Ci[j]
             qian = np.dot(qian, X)                                                # qian: [factor, factor]
             qian = qian + XtX
-            qian = qian + (args.lmda + args.alpha * np.sum(Wi)) * eye             # qian: [factor, factor]
+            qian = qian + (args.lmda + args.alpha * np.sum(Wi)) * eye            # qian: [factor, factor]
             Yi = np.dot(np.linalg.inv(qian), hou)
-            Y[i, :] = Yi
+            Y[i, :] = Yi                                # 现在的情况就是这里更新的时候会有nan的出现，具体原因未知。。。解决方法: 替换nan为0
+            del Ci, qian
             update_lib_bar.update()
+        Y = np.nan_to_num(Y)
         update_lib_bar.close()
         print('epoch%d  [%.3fs]' % (epoch, (time() - epoch_st)))
 
-    del XtX, YtY, Cu, Ci, Pi, Pu, \
-        C, maxVU, maxVI, maxPU, maxPI, hou, qian
+    del XtX, YtY, Pi, Pu, \
+        C, maxVU, maxVI, maxPU, maxPI, hou
 
-    prediction = np.dot(X, Y.T)                                    # prediction: [size_app, size_lib]
+    prediction = np.dot(X, Y.T)                                             # prediction: [size_app, size_lib]
 
     for u in range(size_app):
-        pre_u = prediction[u, :]                                    # pre_u: [size_lib, ]
+        pre_u = prediction[u, :]                                            # pre_u: [size_lib, ]
         pre_u[np.argwhere(relation[u, :] == 1)] = 0
         xiabiao = np.argsort(pre_u)[::-1].astype(np.uint16)
         position[u, :10] = xiabiao[:10] + 1
