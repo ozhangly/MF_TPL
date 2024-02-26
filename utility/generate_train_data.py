@@ -9,7 +9,7 @@ rmv_num = [1, 3, 5]
 fold_num = [0, 1, 2, 3, 4]
 for remove in rmv_num:
     for fold in fold_num:
-        train_file = '../training dataset/train_GREC_%d_%d.json' % (fold, remove)
+        train_file = '../training dataset/train_MF_%d_%d.json' % (fold, remove)
         origin_train_fp = open(file='../train dataset/train_GREC_%d.json' % fold, mode='r')
         origin_test_fp  = open(file='../testing dataset/testing_%d_removed_num_%d.json' % (fold, remove), mode='r')
         with open(file=train_file, mode='w') as write_fp:
