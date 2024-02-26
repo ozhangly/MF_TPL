@@ -18,7 +18,7 @@ def app_sim_computed(relation: np.ndarray) -> None:
         return
 
     ref_relation = relation.T                                                 # [size_lib, size_app]
-    sum_ref_relation = np.sum(ref_relation, axis=0).astype(np.uint16)         # [size_app,]
+    sum_ref_relation = np.sum(ref_relation, axis=0)                           # [size_app,]
     (size_app, size_lib) = relation.shape
     simiU = np.zeros(shape=(size_app, size_app))                              # simiU: [size_app, size_app]
 
@@ -28,7 +28,7 @@ def app_sim_computed(relation: np.ndarray) -> None:
         user_u = ref_relation[:, u]                                         # user_u: [size_lib,]
         fz_tmp = np.dot(relation, user_u)                                   # fz_tmp: [size_app, ]
         fm_tmp = (sum_ref_relation[u] + sum_ref_relation).T - fz_tmp        # 可以进行逐元素运算
-        simiU[:, u] = fz_tmp / fm_tmp
+        simiU[:, u] = fz_tmp / fm_tmp                                       # [size_app, ]
         simiU[u, u] = 0
         app_sim_com_bar.update()
 
@@ -38,10 +38,10 @@ def app_sim_computed(relation: np.ndarray) -> None:
     # 需要对simiU进行排序运算
     # 对相似矩阵的列进行降序排序
     sort_app_bar = tqdm(desc='sorting app similarity...', total=size_app, leave=False)
-    maxPU = np.zeros(shape=(args.top_k, size_app)).astype(np.uint16)
+    maxPU = np.zeros(shape=(args.top_k, size_app))
     for u in range(size_app):
         user_u = simiU[:, u]                                            # user_u: [size_app, ]
-        sort_user_idx = np.argsort(user_u)[::-1].astype(np.uint16)      # sort_user_idx: [size_app, ]
+        sort_user_idx = np.argsort(user_u)[::-1]                        # sort_user_idx: [size_app, ]
         sort_user = user_u[sort_user_idx]
         maxPU[:args.top_k, u] = sort_user_idx[: args.top_k]
         simiU[:, u] = sort_user
@@ -74,7 +74,7 @@ def lib_sim_computed(relation: np.ndarray) -> None:
     if utils.file_exists(v_file_name) and utils.file_exists(p_file_name):
         return
 
-    sum_relation = np.sum(relation, axis=0).astype(np.uint16)       # sum_relation: [size_lib, ]
+    sum_relation = np.sum(relation, axis=0)                         # sum_relation: [size_lib, ]
     ref_relation = relation.T                                       # ref_relation: [size_lib, size_app]
     (size_app, size_lib) = relation.shape
 
@@ -92,10 +92,10 @@ def lib_sim_computed(relation: np.ndarray) -> None:
     del sum_relation, ref_relation, lib_sim_com_bar
 
     sort_lib_bar = tqdm(desc='sorting lib similarity...', leave=False, total=size_lib)
-    maxPI = np.zeros(shape=(args.top_k, size_lib), dtype=np.uint16)
+    maxPI = np.zeros(shape=(args.top_k, size_lib))
     for i in range(size_lib):
         item_i = simiL[:, i]
-        sort_item_idx = np.argsort(item_i)[::-1].astype(np.uint16)
+        sort_item_idx = np.argsort(item_i)[::-1]
         sort_item = item_i[sort_item_idx]
         simiL[:, i] = sort_item
         maxPI[:args.top_k, i] = sort_item_idx[:args.top_k]
@@ -111,7 +111,7 @@ def lib_sim_computed(relation: np.ndarray) -> None:
 
     lib_sim_normal_bar = tqdm(desc='normalize lib sim...', total=size_lib, leave=False)
     for i in range(size_lib):
-        maxVI[:, i] = (maxVI[:, i] / maxW[i])
+        maxVI[:, i] = maxVI[:, i] / maxW[i]
         lib_sim_normal_bar.update()
     lib_sim_normal_bar.close()
     del lib_sim_normal_bar
