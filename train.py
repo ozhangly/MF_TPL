@@ -1,3 +1,4 @@
+import json
 import re
 import utility.utils
 import utility.sim_computed
@@ -18,7 +19,7 @@ def train(epochs) -> None:
     train_file = args.training_path + args.training_dataset
     print('loading data...')
     load_st = time()
-    relation, app_order_id2app_id, app_id2app_order_id = utility.load_data.load_relation_mat(train_file_path=train_file)
+    relation = utility.load_data.load_relation_mat(train_file_path=train_file)
     print('load data completed. [%.2fs]' % (time() - load_st))
 
     # 计算app相似度和lib相似度
@@ -85,7 +86,7 @@ def train(epochs) -> None:
 
         XtX = np.dot(X.T, X)                             # XtX: [factor, factor]
 
-        update_lib_bar = tqdm(desc='updating lib vector...', leave=True, total=size_lib)
+        update_lib_bar = tqdm(desc='updating lib vector...', leave=False, total=size_lib)
         for i in range(size_lib):
             Ci = C[:, i].copy()                                                   # Ci: [size_app, ]
             Pi = relation[:, i]
@@ -104,6 +105,7 @@ def train(epochs) -> None:
             qian = qian + (args.lmda + args.alpha * np.sum(Wi)) * eye            # qian: [factor, factor]
             Yi = np.dot(np.linalg.inv(qian), hou)
             Y[i, :] = Yi                                # 现在的情况就是这里更新的时候会有nan的出现，具体原因未知。。。解决方法: 替换nan为0
+                                                        # 后续: 初步确定可能由于数据加载方式的原因，导致某些lib未被app调用，导致nan  。已更新数据加载方式，查看是否还会出现nan错误。
             del Ci, qian
             update_lib_bar.update()
         Y = np.nan_to_num(Y)
@@ -114,14 +116,23 @@ def train(epochs) -> None:
         C, maxVU, maxVI, maxPU, maxPI, hou
 
     prediction = np.dot(X, Y.T)                                             # prediction: [size_app, size_lib]
+    dict1 = json.load(open(file=args.relation_path + f'fold{fold_rmv[0]}_rmv{fold_rmv[1]}/lib_order_id2lib_id.json', mode='r'))
+    lib_order_id2lib_id = utility.utils.process_dict_key(dict1)
+
+    del dict1
 
     for u in range(size_app):
         pre_u = prediction[u, :]                                            # pre_u: [size_lib, ]
         pre_u[np.argwhere(relation[u, :] == 1)] = 0
         xiabiao = np.argsort(pre_u)[::-1].astype(np.uint16)
-        position[u, :10] = xiabiao[:10] + 1
+        # 在这里需要映射一下
+        new_xiabiao = []
+        for lib_order_id in xiabiao[:10]:
+            lib_id = lib_order_id2lib_id[lib_order_id]
+            new_xiabiao.append(lib_id)
+        position[u, :10] = np.array(new_xiabiao)
 
-    del xiabiao, pre_u
+    del xiabiao, pre_u, new_xiabiao
 
     # 保存预测结果
     utility.utils.ensure_dir(args.rec_output + 'fold%s_rmv%s/' % (fold_rmv[0], fold_rmv[1]))
