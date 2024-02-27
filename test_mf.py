@@ -56,7 +56,7 @@ def test() -> None:
 
     prediction = np.loadtxt(args.rec_output + 'fold%s_rmv%s/prediction_%s_%s.txt' % (fold_rmv[0], fold_rmv[1], fold_rmv[0], fold_rmv[1]))
 
-    dict2 = json.load(fp=open(file=args.relation_path + 'app_id2app_order_id_%s_%s.json' % (fold_rmv[0], fold_rmv[1])))
+    dict2 = json.load(fp=open(file=args.relation_path + f'fold{fold_rmv[0]}_rmv{fold_rmv[1]}/app_id2app_order_id_%s_%s.json' % (fold_rmv[0], fold_rmv[1])))
     app_id2app_order_id = utility.utils.process_dict_key(dict2)
 
     del dict2
