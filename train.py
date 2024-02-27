@@ -59,7 +59,7 @@ def train(epochs) -> None:
         epoch_st = time()
         YtY = np.dot(Y.T, Y)                             # YtY: [factor, factor]
 
-        update_app_bar = tqdm(desc='updating app vector...', total=size_app, leave=True)
+        update_app_bar = tqdm(desc='updating app vector...', total=size_app, leave=False)
         for u in range(size_app):
             Cu = C[u, :].T.copy()                                              # Cu: [size_lib, ]
             Pu = relation[u, :].T                                              # Pu: [size_lib, ]
